@@ -23,7 +23,9 @@ class MyAppTests(unittest.TestCase):
     def test_get_branch_id(self):
         response = self.app.get("/branch/001")
         self.assertEqual(response.status_code, 200)
+        
         self.assertTrue("Malvar" in response.data.decode())
+        
 
 
 if __name__ == "__main__":
