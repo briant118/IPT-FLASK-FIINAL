@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+
+#file name
+privatefile/
+__pycache__/
+
+
 # User-specific files
 *.rsuser
 *.suo
