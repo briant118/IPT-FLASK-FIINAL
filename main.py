@@ -85,5 +85,21 @@ def update_actor(id):
     )
 
 
+@app.route("/branch/<int:id>", methods=["DELETE"])
+def delete_actor(id):
+    cur = mysql.connection.cursor()
+    cur.execute(""" DELETE FROM branch where BranchID = %s """, (id,))
+    mysql.connection.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+    return make_response(
+        jsonify(
+            {"message": "actor deleted successfully",
+             "rows_affected": rows_affected}
+        ),
+        200,
+    )
+
+
 if __name__ == "__main__":
     app.run(debug=True)
