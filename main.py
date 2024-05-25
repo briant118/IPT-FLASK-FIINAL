@@ -62,5 +62,28 @@ def add_branch():
                                   "rows_affected": rows_affected}), 200)
 
 
+@app.route("/branch/<int:id>", methods=["PUT"])
+def update_actor(id):
+    cur = mysql.connection.cursor()
+    info = request.get_json()
+    Branch_location = info["Branch_Location"]
+    Branch_name = info['Branch_Name']
+    cur.execute(
+        """ UPDATE branch SET Branch_location = %s, Branch_Name = %s
+        WHERE BranchID = %s """,
+        (Branch_location, Branch_name, id),
+    )
+    mysql.connection.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+    return make_response(
+        jsonify(
+            {"message": "actor updated successfully",
+             "rows_affected": rows_affected}
+        ),
+        200,
+    )
+
+
 if __name__ == "__main__":
     app.run(debug=True)
