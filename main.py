@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify, make_response, render_template
 from flask_mysqldb import MySQL
-import jwt
-from datetime import datetime, timedelta
-from functools import wraps
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = 'VCJ7E1E57OwtFPHMx5E'
+
 app.config["MYSQL_HOST"] = "localhost"
 app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = "202280287PSU"
@@ -14,35 +13,26 @@ app.config["MYSQL_DB"] = "kwikkwikcafe"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 
 mysql = MySQL(app)
+auth = HTTPBasicAuth()
+
+# Create a simple user storage
+users = {
+    "Bryan": generate_password_hash("root"),
+    "Alice": generate_password_hash("wonderland")
+}
 
 
-def token_required(func):
-    @wraps(func)
-    def decorated(*args, **kwargs):
-        token = None
-
-        if 'x-access-token' in request.headers:
-            token = request.headers['x-access-token']
-
-        if not token:
-            return jsonify({'Alert!': 'Token is missing!'}), 401
-
-        try:
-            data = jwt.decode(token, app.config['SECRET_KEY'],
-                              algorithms=["HS256"])
-            current_user = data['user']
-        except jwt.ExpiredSignatureError:
-            return jsonify({'Message': 'Token has expired'}), 403
-        except jwt.InvalidTokenError:
-            return jsonify({'Message': 'Invalid token'}), 403
-
-        return func(current_user=current_user, *args, **kwargs)
-    return decorated
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username),
+                                                 password):
+        return username
+    return None
 
 
 @app.route('/')
 def hello_world():
-    return "<p>WELCOME TO MY FLASK APPLICATION!</p>"
+    return "<p>Welcome</p>"
 
 
 def data_fetch(query):
@@ -65,22 +55,19 @@ def login():
         username = data.get('username')
         password = data.get('password')
 
-        if username == 'Bryan' and password == 'root':
-            token = jwt.encode({
-                'user': username,
-                'exp': datetime.utcnow() + timedelta(minutes=30)
-            }, app.config['SECRET_KEY'], algorithm="HS256")
-
-            return jsonify({'token': token})
+        if verify_password(username, password):
+            return jsonify({'message': 'Login successful'})
         else:
             return make_response('Unable to verify', 403,
                                  {'WWW-Authenticate':
                                      'Basic realm: "Authentication Failed "'})
+            
     else:
         return render_template('login.html')
 
 
 @app.route("/branch", methods=["GET"])
+@auth.login_required
 def get_countries():
     cur = mysql.connection.cursor()
     query = "SELECT * FROM kwikkwikcafe.branch"
@@ -91,6 +78,7 @@ def get_countries():
 
 
 @app.route("/branch/<int:id>", methods=["GET"])
+@auth.login_required
 def get_branch_by_id(id):
     cur = mysql.connection.cursor()
     query = "SELECT * FROM branch WHERE BranchID = %s"
@@ -101,8 +89,8 @@ def get_branch_by_id(id):
 
 
 @app.route("/branch", methods=["POST"])
-@token_required
-def add_branch(current_user):
+@auth.login_required
+def add_branch():
     cur = mysql.connection.cursor()
     info = request.get_json()
     Branch_location = info["Branch_Location"]
@@ -116,13 +104,12 @@ def add_branch(current_user):
     rows_affected = cur.rowcount
     cur.close()
     return make_response(jsonify({"message": "Branch added successfully",
-                                  "rows_affected": rows_affected,
-                                  "user": current_user}), 200)
+                                  "rows_affected": rows_affected}), 200)
 
 
 @app.route("/branch/<int:id>", methods=["PUT"])
-@token_required
-def update_branch(current_user, id):
+@auth.login_required
+def update_branch(id):
     cur = mysql.connection.cursor()
     info = request.get_json()
     Branch_location = info["Branch_Location"]
@@ -135,21 +122,19 @@ def update_branch(current_user, id):
     rows_affected = cur.rowcount
     cur.close()
     return make_response(jsonify({"message": "Branch updated successfully",
-                                  "rows_affected": rows_affected,
-                                  "user": current_user}), 200)
+                                  "rows_affected": rows_affected}), 200)
 
 
 @app.route("/branch/<int:id>", methods=["DELETE"])
-@token_required
-def delete_branch(current_user, id):
+@auth.login_required
+def delete_branch(id):
     cur = mysql.connection.cursor()
     cur.execute("DELETE FROM branch WHERE BranchID = %s", (id,))
     mysql.connection.commit()
     rows_affected = cur.rowcount
     cur.close()
     return make_response(jsonify({"message": "Branch deleted successfully",
-                                  "rows_affected": rows_affected, "user":
-                                      current_user}), 200)
+                                  "rows_affected": rows_affected}), 200)
 
 
 if __name__ == "__main__":
