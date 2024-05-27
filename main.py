@@ -12,6 +12,7 @@ app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = "202280287PSU"
 app.config["MYSQL_DB"] = "kwikkwikcafe"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
+app.config["SECRET_KEY"] = "s6a604ed2978547c5b8ceaffb8b61442d"
 
 mysql = MySQL(app)
 auth = HTTPBasicAuth()
