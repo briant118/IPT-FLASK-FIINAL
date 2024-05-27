@@ -14,12 +14,10 @@ Features
   Delete a branch.
   
 Requirements
-
   Python 3.x
-
   MySQL database
 
-
 Installation
+
 
 
